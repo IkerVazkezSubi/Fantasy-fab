@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
+import ConfirmModal from "../../components/ConfirmModal";
 
 const POSITION_LABEL = {
   base: "Base",
@@ -25,6 +26,7 @@ export default function MarketPage() {
   const [message, setMessage] = useState("");
   const [busyId, setBusyId] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
+  const [pendingBuy, setPendingBuy] = useState(null); // jugador esperando confirmación
 
   const load = async () => {
     const { data: playerRows } = await supabase
@@ -64,11 +66,12 @@ export default function MarketPage() {
     load();
   }, []);
 
-  const handleBuy = async (player) => {
-    const confirmed = window.confirm(
-      `¿Seguro que quieres fichar a ${player.full_name} por ${player.current_price}M?`
-    );
-    if (!confirmed) return;
+  const requestBuy = (player) => setPendingBuy(player);
+
+  const confirmBuy = async () => {
+    const player = pendingBuy;
+    setPendingBuy(null);
+    if (!player) return;
 
     setMessage("");
     setBusyId(player.id);
@@ -224,7 +227,7 @@ export default function MarketPage() {
                   <span className="text-xs text-ink/50 font-display">FICHADO</span>
                 ) : (
                   <button
-                    onClick={() => handleBuy(p)}
+                    onClick={() => requestBuy(p)}
                     disabled={!session || busyId === p.id}
                     className="btn-primary text-xs px-3 py-1.5"
                   >
@@ -274,6 +277,19 @@ export default function MarketPage() {
           );
         })}
       </div>
+
+      <ConfirmModal
+        open={!!pendingBuy}
+        title="Confirmar fichaje"
+        message={
+          pendingBuy
+            ? `¿Seguro que quieres fichar a ${pendingBuy.full_name} por ${pendingBuy.current_price}M?`
+            : ""
+        }
+        confirmLabel="Fichar"
+        onConfirm={confirmBuy}
+        onCancel={() => setPendingBuy(null)}
+      />
     </div>
   );
 }
