@@ -159,9 +159,16 @@ export default function MyTeamPage() {
     });
   };
 
-  const handleSell = async (playerId) => {
+  const handleSell = async (player) => {
+    const confirmed = window.confirm(
+      `¿Seguro que quieres vender a ${player.full_name}? Recibirás ${(
+        player.current_price * 0.95
+      ).toFixed(1)}M (95% de su precio actual, ${player.current_price}M).`
+    );
+    if (!confirmed) return;
+
     setMessage("");
-    const { error } = await supabase.rpc("sell_player", { p_player_id: playerId });
+    const { error } = await supabase.rpc("sell_player", { p_player_id: player.id });
     if (error) {
       setMessage(error.message);
       return;
@@ -322,7 +329,7 @@ export default function MyTeamPage() {
               <div className="text-right">
                 <p className="font-display">{p.current_price}M</p>
                 <button
-                  onClick={() => handleSell(player_id)}
+                  onClick={() => handleSell(p)}
                   className="text-xs text-ink/50 hover:text-rio underline"
                 >
                   vender
