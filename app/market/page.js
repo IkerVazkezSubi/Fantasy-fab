@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 
 const POSITION_LABEL = {
   base: "Base",
   escolta: "Escolta",
   alero: "Alero",
-   "ala-pivot": "Ala-Pívot",
+  "ala-pivot": "Ala-Pívot",
   pivot: "Pívot",
   "sin-posicion": "Sin posición",
 };
@@ -17,7 +17,9 @@ export default function MarketPage() {
   const [ownedIds, setOwnedIds] = useState(new Set());
   const [session, setSession] = useState(null);
   const [budget, setBudget] = useState(null);
-  const [filterPos, setFilterPos] = useState("todas");
+  const [search, setSearch] = useState("");
+  const [teamFilter, setTeamFilter] = useState("todos");
+  const [sortOrder, setSortOrder] = useState("desc"); // "desc" = caro a barato
   const [message, setMessage] = useState("");
   const [busyId, setBusyId] = useState(null);
 
@@ -26,7 +28,7 @@ export default function MarketPage() {
       .from("players")
       .select("id, full_name, position, current_price, active, teams(name)")
       .eq("active", true)
-      .order("current_price", { ascending: false });
+      .order("full_name");
     setPlayers(playerRows || []);
 
     const { data: rosterRows } = await supabase.from("roster").select("player_id");
@@ -61,8 +63,31 @@ export default function MarketPage() {
     load();
   };
 
-  const filtered =
-    filterPos === "todas" ? players : players.filter((p) => p.position === filterPos);
+  const teamOptions = useMemo(() => {
+    const names = new Set(players.map((p) => p.teams?.name).filter(Boolean));
+    return Array.from(names).sort((a, b) => a.localeCompare(b));
+  }, [players]);
+
+  const filtered = useMemo(() => {
+    let list = players;
+
+    if (teamFilter !== "todos") {
+      list = list.filter((p) => p.teams?.name === teamFilter);
+    }
+
+    if (search.trim() !== "") {
+      const q = search.trim().toLowerCase();
+      list = list.filter((p) => p.full_name.toLowerCase().includes(q));
+    }
+
+    list = [...list].sort((a, b) =>
+      sortOrder === "desc"
+        ? b.current_price - a.current_price
+        : a.current_price - b.current_price
+    );
+
+    return list;
+  }, [players, teamFilter, search, sortOrder]);
 
   return (
     <div>
@@ -75,20 +100,36 @@ export default function MarketPage() {
         )}
       </div>
 
-      <div className="flex gap-2 mb-6 flex-wrap">
-        {["todas", "base", "escolta", "alero", "ala-pivot", "pivot"].map((pos) => (
-          <button
-            key={pos}
-            onClick={() => setFilterPos(pos)}
-            className={`px-3 py-1 text-sm font-display border ${
-              filterPos === pos
-                ? "bg-ink text-paper border-ink"
-                : "border-line hover:border-ink"
-            }`}
-          >
-            {pos === "todas" ? "Todas" : POSITION_LABEL[pos]}
-          </button>
-        ))}
+      <div className="grid sm:grid-cols-3 gap-3 mb-6">
+        <input
+          type="text"
+          className="input"
+          placeholder="Buscar jugador por nombre..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+
+        <select
+          className="input"
+          value={teamFilter}
+          onChange={(e) => setTeamFilter(e.target.value)}
+        >
+          <option value="todos">Todos los equipos</option>
+          {teamOptions.map((name) => (
+            <option key={name} value={name}>
+              {name}
+            </option>
+          ))}
+        </select>
+
+        <select
+          className="input"
+          value={sortOrder}
+          onChange={(e) => setSortOrder(e.target.value)}
+        >
+          <option value="desc">Precio: caro → barato</option>
+          <option value="asc">Precio: barato → caro</option>
+        </select>
       </div>
 
       {message && <p className="mb-4 text-sm text-rio">{message}</p>}
@@ -100,6 +141,10 @@ export default function MarketPage() {
         </p>
       )}
 
+      <p className="text-xs text-ink/50 mb-3">
+        {filtered.length} jugador{filtered.length === 1 ? "" : "es"}
+      </p>
+
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.map((p) => {
           const owned = ownedIds.has(p.id);
@@ -110,7 +155,9 @@ export default function MarketPage() {
                   <p className="font-display text-lg leading-tight">{p.full_name}</p>
                   <p className="text-xs text-ink/60">{p.teams?.name}</p>
                 </div>
-                <span className="badge-position">{POSITION_LABEL[p.position]}</span>
+                <span className="badge-position">
+                  {POSITION_LABEL[p.position] || p.position}
+                </span>
               </div>
               <div className="flex items-center justify-between mt-2">
                 <span className="font-display text-xl">{p.current_price}M</span>
