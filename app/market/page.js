@@ -7,8 +7,9 @@ const POSITION_LABEL = {
   base: "Base",
   escolta: "Escolta",
   alero: "Alero",
-  "ala-pivot": "Ala-Pívot",
+   "ala-pivot": "Ala-Pívot",
   pivot: "Pívot",
+  "sin-posicion": "Sin posición",
 };
 
 export default function MarketPage() {
