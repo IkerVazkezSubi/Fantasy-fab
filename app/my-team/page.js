@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabaseClient";
+import ConfirmModal from "../../components/ConfirmModal";
 
 const POSITION_LABEL = {
   base: "Base",
@@ -87,6 +88,7 @@ export default function MyTeamPage() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [pickerSlot, setPickerSlot] = useState(null); // qué hueco está eligiendo jugador
+  const [pendingSell, setPendingSell] = useState(null); // jugador esperando confirmación de venta
 
   const load = async () => {
     const { data: sessionData } = await supabase.auth.getSession();
@@ -159,13 +161,12 @@ export default function MyTeamPage() {
     });
   };
 
-  const handleSell = async (player) => {
-    const confirmed = window.confirm(
-      `¿Seguro que quieres vender a ${player.full_name}? Recibirás ${(
-        player.current_price * 0.95
-      ).toFixed(1)}M (95% de su precio actual, ${player.current_price}M).`
-    );
-    if (!confirmed) return;
+  const requestSell = (player) => setPendingSell(player);
+
+  const confirmSell = async () => {
+    const player = pendingSell;
+    setPendingSell(null);
+    if (!player) return;
 
     setMessage("");
     const { error } = await supabase.rpc("sell_player", { p_player_id: player.id });
@@ -329,7 +330,7 @@ export default function MyTeamPage() {
               <div className="text-right">
                 <p className="font-display">{p.current_price}M</p>
                 <button
-                  onClick={() => handleSell(p)}
+                  onClick={() => requestSell(p)}
                   className="text-xs text-ink/50 hover:text-rio underline"
                 >
                   vender
@@ -344,6 +345,21 @@ export default function MyTeamPage() {
           </p>
         )}
       </section>
+
+      <ConfirmModal
+        open={!!pendingSell}
+        title="Confirmar venta"
+        message={
+          pendingSell
+            ? `¿Seguro que quieres vender a ${pendingSell.full_name}? Recibirás ${(
+                pendingSell.current_price * 0.95
+              ).toFixed(1)}M (95% de su precio actual, ${pendingSell.current_price}M).`
+            : ""
+        }
+        confirmLabel="Vender"
+        onConfirm={confirmSell}
+        onCancel={() => setPendingSell(null)}
+      />
     </div>
   );
 }
