@@ -13,62 +13,66 @@ const POSITION_LABEL = {
   "sin-posicion": "Sin posición",
 };
 
-// Coordenadas (en %) de cada hueco sobre la media cancha, en una formación
-// clásica de quinteto. Son solo una guía visual: cualquier jugador de tu
-// plantilla puede ocupar cualquier hueco.
+// Coordenadas (en %) de cada hueco sobre la cancha cuadrada, en formación de
+// quinteto clásica (base arriba llevando el balón, escolta/alero como alas a
+// la misma altura, ala-pívot/pívot abajo cerca del aro, también a la misma
+// altura). Son solo una guía visual: cualquier jugador de tu plantilla puede
+// ocupar cualquier hueco.
 const SLOTS = [
-  { key: "pivot", label: "Pívot", top: "14%", left: "50%" },
-  { key: "ala-pivot", label: "Ala-Pívot", top: "30%", left: "22%" },
-  { key: "alero", label: "Alero", top: "30%", left: "78%" },
-  { key: "escolta", label: "Escolta", top: "58%", left: "14%" },
-  { key: "base", label: "Base", top: "72%", left: "50%" },
+  { key: "base", label: "Base", top: "9%", left: "50%" },
+  { key: "escolta", label: "Escolta", top: "40%", left: "17%" },
+  { key: "alero", label: "Alero", top: "40%", left: "83%" },
+  { key: "ala-pivot", label: "Ala-Pívot", top: "76%", left: "27%" },
+  { key: "pivot", label: "Pívot", top: "76%", left: "73%" },
 ];
 
 function HalfCourt() {
   return (
     <svg
-      viewBox="0 0 400 500"
+      viewBox="0 0 400 400"
       className="absolute inset-0 w-full h-full"
       preserveAspectRatio="none"
     >
-      <rect x="0" y="0" width="400" height="500" fill="#C48A4A" />
+      <rect x="0" y="0" width="400" height="400" fill="#C48A4A" />
       <rect
         x="8"
         y="8"
         width="384"
-        height="484"
+        height="384"
         fill="none"
         stroke="#F1E9DA"
         strokeWidth="3"
       />
-      {/* Línea de fondo ya cubierta por el borde; aro y tablero */}
-      <rect x="150" y="8" width="100" height="4" fill="#F1E9DA" />
-      {/* Zona (la pintura) */}
+      {/* Línea de triple, arco abierto hacia el aro (abajo) */}
+      <path
+        d="M 20 392 L 20 160 A 180 180 0 0 1 380 160 L 380 392"
+        fill="none"
+        stroke="#F1E9DA"
+        strokeWidth="3"
+      />
+      {/* Zona (la pintura), pegada a la línea de fondo inferior */}
       <rect
         x="130"
-        y="8"
+        y="232"
         width="140"
         height="160"
         fill="none"
         stroke="#F1E9DA"
         strokeWidth="3"
       />
-      {/* Círculo de tiros libres */}
+      {/* Círculo de tiros libres, discontinuo en la mitad alejada del aro */}
       <circle
         cx="200"
-        cy="168"
+        cy="232"
         r="60"
         fill="none"
         stroke="#F1E9DA"
         strokeWidth="3"
+        strokeDasharray="10 8"
       />
-      {/* Línea de triple (arco simplificado) */}
-      <path
-        d="M 20 8 L 20 230 A 180 180 0 0 0 380 230 L 380 8"
-        fill="none"
-        stroke="#F1E9DA"
-        strokeWidth="3"
-      />
+      {/* Tablero y aro */}
+      <rect x="170" y="392" width="60" height="4" fill="#F1E9DA" />
+      <circle cx="200" cy="400" r="8" fill="none" stroke="#F1E9DA" strokeWidth="3" />
     </svg>
   );
 }
@@ -225,7 +229,7 @@ export default function MyTeamPage() {
       {message && <p className="text-sm text-rio mb-3">{message}</p>}
 
       {/* CANCHA */}
-      <div className="relative w-full max-w-md mx-auto mb-10" style={{ aspectRatio: "400 / 500" }}>
+      <div className="relative w-full max-w-md mx-auto mb-10" style={{ aspectRatio: "1 / 1" }}>
         <HalfCourt />
         {SLOTS.map((slot) => {
           const playerId = slotAssignments[slot.key];
