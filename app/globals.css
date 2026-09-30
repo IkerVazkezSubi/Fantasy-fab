@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-paper text-ink font-body;
+  }
+  h1, h2, h3 {
+    @apply font-display;
+  }
+  a {
+    @apply underline decoration-rio decoration-2 underline-offset-2;
+  }
+}
+
+@layer components {
+  .card {
+    @apply border border-line bg-white/60 p-5;
+  }
+  .btn-primary {
+    @apply bg-rio text-paper px-4 py-2 font-display text-sm tracking-wide
+           hover:bg-rio-dark transition-colors disabled:opacity-40 disabled:hover:bg-rio;
+  }
+  .btn-secondary {
+    @apply border border-ink px-4 py-2 font-display text-sm tracking-wide
+           hover:bg-ink hover:text-paper transition-colors;
+  }
+  .input {
+    @apply w-full border border-line bg-white px-3 py-2 text-ink
+           focus:outline-none focus:border-rio;
+  }
+  .badge-position {
+    @apply inline-block border border-court-dark bg-court/20 px-2 py-0.5 text-xs font-display;
+  }
+}
