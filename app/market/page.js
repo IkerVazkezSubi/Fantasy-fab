@@ -64,10 +64,15 @@ export default function MarketPage() {
     load();
   }, []);
 
-  const handleBuy = async (playerId) => {
+  const handleBuy = async (player) => {
+    const confirmed = window.confirm(
+      `¿Seguro que quieres fichar a ${player.full_name} por ${player.current_price}M?`
+    );
+    if (!confirmed) return;
+
     setMessage("");
-    setBusyId(playerId);
-    const { error } = await supabase.rpc("buy_player", { p_player_id: playerId });
+    setBusyId(player.id);
+    const { error } = await supabase.rpc("buy_player", { p_player_id: player.id });
     setBusyId(null);
     if (error) {
       setMessage(error.message);
@@ -219,7 +224,7 @@ export default function MarketPage() {
                   <span className="text-xs text-ink/50 font-display">FICHADO</span>
                 ) : (
                   <button
-                    onClick={() => handleBuy(p.id)}
+                    onClick={() => handleBuy(p)}
                     disabled={!session || busyId === p.id}
                     className="btn-primary text-xs px-3 py-1.5"
                   >
