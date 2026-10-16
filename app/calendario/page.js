@@ -2,7 +2,8 @@ import Link from "next/link";
 import { supabaseAdmin } from "../../lib/supabaseServer";
 import { isCoach } from "../../lib/session";
 import { dayKey, formatDay, formatTime } from "../../lib/dates";
-import { teamBySlug } from "../../lib/teams";
+import { TEAMS, teamBySlug } from "../../lib/teams";
+import { isMonth, monthLabel, monthWeeks, shiftMonth } from "../../lib/monthGrid";
 
 export const dynamic = "force-dynamic";
 
@@ -24,17 +25,6 @@ async function loadEvents() {
   }
 }
 
-function groupByDay(events) {
-  const groups = [];
-  for (const ev of events) {
-    const key = dayKey(ev.starts_at);
-    const last = groups[groups.length - 1];
-    if (last && last.key === key) last.events.push(ev);
-    else groups.push({ key, label: formatDay(ev.starts_at), events: [ev] });
-  }
-  return groups;
-}
-
 function EventRow({ ev, coach }) {
   const isMatch = ev.kind === "Partido";
   const versus = isMatch && ev.home_team && ev.away_team;
@@ -44,11 +34,11 @@ function EventRow({ ev, coach }) {
   // si es otra (una copa, un torneo…).
   const extraCompetition = isMatch && ev.competition && ev.competition !== team?.league;
   return (
-    <li className="py-4 border-b border-linea/25 flex gap-4">
-      <p className="font-display font-bold text-4xl leading-none w-[4.5rem] shrink-0 tabular-nums">
-        {formatTime(ev.starts_at)}
+    <li className="py-4 border-b border-linea/25">
+      <p className="font-display font-extrabold text-2xl text-arce leading-none">
+        {formatDay(ev.starts_at)}, {formatTime(ev.starts_at)}
       </p>
-      <div className="min-w-0 flex-1">
+      <div className="mt-2 min-w-0">
         {versus ? (
           <p className="font-display font-bold text-3xl leading-tight break-words">
             {ev.home_team}{" "}
@@ -90,32 +80,115 @@ function EventRow({ ev, coach }) {
   );
 }
 
-function Groups({ groups, coach }) {
-  return groups.map((g) => (
-    <section key={g.key} aria-label={g.label} className="mt-6">
-      <h2 className="font-display font-extrabold text-2xl text-arce leading-none">{g.label}</h2>
-      <ul>
-        {g.events.map((ev) => (
-          <EventRow key={ev.id} ev={ev} coach={coach} />
-        ))}
-      </ul>
-    </section>
-  ));
+function EventList({ events, coach }) {
+  return (
+    <ul className="mt-2">
+      {events.map((ev) => (
+        <EventRow key={ev.id} ev={ev} coach={coach} />
+      ))}
+    </ul>
+  );
 }
 
-function Tabs({ active }) {
+// Enlace de la página con sus opciones; lo que está por defecto no se escribe.
+function href({ vista, ver, eq, mes, dia }) {
+  const p = new URLSearchParams();
+  if (vista === "mes") p.set("vista", "mes");
+  if (ver === "resultados") p.set("ver", "resultados");
+  if (eq) p.set("eq", eq);
+  if (mes) p.set("mes", mes);
+  if (dia) p.set("dia", dia);
+  const q = p.toString();
+  return q ? `/calendario?${q}` : "/calendario";
+}
+
+const DOT = { "nacional-masculino": "bg-arce", "provincial-masculino": "bg-balon", "provincial-femenino": "bg-linea" };
+
+function Chip({ to, active, children, className = "" }) {
+  return (
+    <Link
+      href={to}
+      aria-current={active ? "page" : undefined}
+      className={`inline-flex items-center h-11 px-4 rounded-md border-2 font-semibold ${
+        active ? "bg-linea text-pintura border-linea" : "border-linea/50 text-linea"
+      } ${className}`}
+    >
+      {children}
+    </Link>
+  );
+}
+
+function MonthView({ ym, events, dia, eq, coach }) {
+  const byDay = new Map();
+  for (const ev of events) {
+    const k = dayKey(ev.starts_at);
+    if (k.startsWith(ym)) byDay.set(k, [...(byDay.get(k) ?? []), ev]);
+  }
+  const today = dayKey(new Date().toISOString());
+  const shown = dia && dia.startsWith(ym) ? byDay.get(dia) ?? [] : [...byDay.values()].flat().sort((a, b) => Date.parse(a.starts_at) - Date.parse(b.starts_at));
+  const nav = (to, label) => (
+    <Link href={href({ vista: "mes", eq, mes: to })} className="inline-flex items-center justify-center h-11 w-11 rounded-md border-2 border-linea/50 text-2xl" aria-label={label}>
+      {label === "Mes anterior" ? "‹" : "›"}
+    </Link>
+  );
+  return (
+    <section className="mt-5">
+      <div className="flex items-center justify-between gap-2">
+        {nav(shiftMonth(ym, -1), "Mes anterior")}
+        <h2 className="font-display font-extrabold text-3xl leading-none capitalize">{monthLabel(ym)}</h2>
+        {nav(shiftMonth(ym, 1), "Mes siguiente")}
+      </div>
+      <div className="mt-3 grid grid-cols-7 text-center text-sm text-linea/70" aria-hidden="true">
+        {["L", "M", "X", "J", "V", "S", "D"].map((d) => (
+          <span key={d}>{d}</span>
+        ))}
+      </div>
+      <div className="mt-1 grid grid-cols-7 gap-1">
+        {monthWeeks(ym).flat().map((k, i) => {
+          if (!k) return <span key={i} />;
+          const evs = byDay.get(k) ?? [];
+          const selected = k === dia;
+          return (
+            <Link
+              key={k}
+              href={href({ vista: "mes", eq, mes: ym, dia: selected ? null : k })}
+              aria-label={`${Number(k.slice(8))}${evs.length ? `, ${evs.length} evento${evs.length > 1 ? "s" : ""}` : ""}`}
+              className={`h-14 rounded-md flex flex-col items-center justify-center border-2 ${
+                selected ? "border-arce bg-linea/15" : k === today ? "border-linea/60" : "border-transparent bg-linea/5"
+              }`}
+            >
+              <span className="font-display font-bold text-xl leading-none">{Number(k.slice(8))}</span>
+              <span className="mt-1 flex gap-0.5 h-2">
+                {evs.slice(0, 3).map((ev) => (
+                  <span key={ev.id} className={`w-2 h-2 rounded-full ${DOT[ev.club_team] ?? "border border-linea/70"}`} />
+                ))}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
+      {shown.length === 0 ? (
+        <p className="mt-5 text-lg text-linea/80">{dia ? "Nada ese día." : "Nada este mes."}</p>
+      ) : (
+        <EventList events={shown} coach={coach} />
+      )}
+    </section>
+  );
+}
+
+function Tabs({ active, eq }) {
   const base = "flex-1 inline-flex items-center justify-center h-12 font-display font-bold text-2xl border-b-4";
   return (
     <nav aria-label="Calendario" className="mt-6 flex">
       <Link
-        href="/calendario"
+        href={href({ eq })}
         aria-current={active === "proximos" ? "page" : undefined}
         className={`${base} ${active === "proximos" ? "border-arce text-linea" : "border-linea/20 text-linea/60"}`}
       >
         Próximos
       </Link>
       <Link
-        href="/calendario?ver=resultados"
+        href={href({ ver: "resultados", eq })}
         aria-current={active === "resultados" ? "page" : undefined}
         className={`${base} ${active === "resultados" ? "border-arce text-linea" : "border-linea/20 text-linea/60"}`}
       >
@@ -126,8 +199,14 @@ function Tabs({ active }) {
 }
 
 export default async function CalendarioPage({ searchParams }) {
+  const vista = searchParams?.vista === "mes" ? "mes" : "lista";
   const tab = searchParams?.ver === "resultados" || searchParams?.pasados === "1" ? "resultados" : "proximos";
-  const [{ events, failed }, coach] = await Promise.all([loadEvents(), isCoach()]);
+  const eq = teamBySlug(searchParams?.eq) ? searchParams.eq : null;
+  const ym = isMonth(searchParams?.mes) ? searchParams.mes : dayKey(new Date().toISOString()).slice(0, 7);
+  const dia = /^\d{4}-\d{2}-\d{2}$/.test(searchParams?.dia ?? "") ? searchParams.dia : null;
+  const [{ events: all, failed }, coach] = await Promise.all([loadEvents(), isCoach()]);
+  // Con un equipo elegido solo salen sus partidos (los entrenos y otros eventos no son de un equipo).
+  const events = eq ? all.filter((e) => e.club_team === eq) : all;
 
   const limit = Date.now() - GRACE_MS;
   const upcoming = events.filter((e) => Date.parse(e.starts_at) >= limit);
@@ -153,26 +232,42 @@ export default async function CalendarioPage({ searchParams }) {
         </Link>
       )}
 
-      <Tabs active={tab} />
+      <div className="mt-5 flex flex-wrap gap-2" role="group" aria-label="Vista">
+        <Chip to={href({ eq })} active={vista === "lista"}>Lista</Chip>
+        <Chip to={href({ vista: "mes", eq })} active={vista === "mes"}>Mes</Chip>
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Equipo">
+        <Chip to={href({ vista, ver: tab, eq: null, mes: vista === "mes" ? ym : null })} active={!eq}>Todos</Chip>
+        {TEAMS.map((t) => (
+          <Chip key={t.slug} to={href({ vista, ver: tab, eq: t.slug, mes: vista === "mes" ? ym : null })} active={eq === t.slug}>
+            {t.name}
+          </Chip>
+        ))}
+      </div>
+
+      {vista === "lista" && <Tabs active={tab} eq={eq} />}
 
       {failed ? (
         <p className="mt-8 text-lg">
           No se ha podido cargar el calendario. Prueba otra vez en un momento; si sigue igual,
           avisa al entrenador.
         </p>
+      ) : vista === "mes" ? (
+        <MonthView ym={ym} events={events} dia={dia} eq={eq} coach={coach} />
       ) : tab === "proximos" ? (
         upcoming.length === 0 ? (
           <p className="mt-8 text-lg text-linea/80">
-            No hay nada próximo. El entrenador irá añadiendo entrenos y partidos.
+            {eq ? "No hay partidos próximos de este equipo." : "No hay nada próximo. El entrenador irá añadiendo entrenos y partidos."}
           </p>
         ) : (
-          <Groups groups={groupByDay(upcoming)} coach={coach} />
+          <EventList events={upcoming} coach={coach} />
         )
       ) : past.length === 0 ? (
         <p className="mt-8 text-lg text-linea/80">Todavía no hay partidos terminados.</p>
       ) : (
         <ul className="mt-4">
-          {past.map((ev) => {
+{past.map((ev) => {
                       const versus = ev.kind === "Partido" && ev.home_team && ev.away_team;
                       const hasScore = versus && ev.home_score != null && ev.away_score != null;
                       return (
