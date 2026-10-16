@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { isCoach } from "../../../../lib/session";
 import { supabaseAdmin } from "../../../../lib/supabaseServer";
 import { CATEGORIES } from "../../../../lib/categories";
+import { TEAMS } from "../../../../lib/teams";
 import PlayEditor from "../../../../components/PlayEditor";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +19,7 @@ export default async function EditarJugadaPage({ params }) {
   try {
     const { data, error } = await supabaseAdmin()
       .from("plays")
-      .select("id, name, category, description, steps")
+      .select("id, name, team, category, description, steps")
       .eq("id", params.id)
       .maybeSingle();
     if (error) throw error;
@@ -42,7 +43,7 @@ export default async function EditarJugadaPage({ params }) {
       {failed ? (
         <p className="text-lg">No se ha podido cargar la jugada. Prueba otra vez en un momento.</p>
       ) : (
-        <PlayEditor initial={play} categories={CATEGORIES} />
+        <PlayEditor initial={play} categories={CATEGORIES} teams={TEAMS} />
       )}
     </main>
   );

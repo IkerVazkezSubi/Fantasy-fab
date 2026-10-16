@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { supabaseAdmin } from "../../../lib/supabaseServer";
 import PlayBoard from "../../../components/PlayBoard";
 import { isCoach } from "../../../lib/session";
+import { teamBySlug } from "../../../lib/teams";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,7 @@ async function loadPlay(id) {
   try {
     const { data, error } = await supabaseAdmin()
       .from("plays")
-      .select("id, name, category, description, steps")
+      .select("id, name, team, category, description, steps")
       .eq("id", id)
       .maybeSingle();
     if (error) throw error;
@@ -23,9 +24,9 @@ async function loadPlay(id) {
   }
 }
 
-const backLink = (
+const backTo = (team) => (
   <Link
-    href="/jugadas"
+    href={team ? `/jugadas?eq=${team}` : "/jugadas"}
     className="inline-flex items-center h-11 -ml-2 px-2 font-semibold underline underline-offset-4"
   >
     Volver a jugadas
@@ -40,7 +41,7 @@ export default async function PlayPage({ params }) {
   if (failed) {
     return (
       <main className="min-h-dvh max-w-xl mx-auto px-5 pt-6 pb-12">
-        {backLink}
+        {backTo(null)}
         <p className="mt-6 text-lg">
           No se ha podido cargar la jugada. Prueba otra vez en un momento; si sigue igual, avisa
           al entrenador.
@@ -55,10 +56,12 @@ export default async function PlayPage({ params }) {
 
   return (
     <main className="min-h-dvh max-w-xl mx-auto px-5 pt-6 pb-12">
-      {backLink}
+      {backTo(play.team)}
 
       <h1 className="mt-2 font-display font-extrabold text-5xl leading-[0.9]">{play.name}</h1>
-      <p className="mt-2 text-linea/80">{play.category}</p>
+      <p className="mt-2 text-linea/80">
+        {teamBySlug(play.team)?.name ?? "Sin equipo"} · {play.category}
+      </p>
       {play.description && <p className="mt-3 text-lg max-w-prose">{play.description}</p>}
 
       {coach && (

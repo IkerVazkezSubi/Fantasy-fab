@@ -26,7 +26,7 @@ cierra las sesiones ya abiertas (para eso, cambia también `SESSION_SECRET`).
 
 ## Datos (Supabase)
 
-Las jugadas viven en la tabla `plays` (`supabase/plays.sql`) y el calendario en `events` (`supabase/events.sql`). Tiene RLS activado y **sin
+Las jugadas viven en la tabla `plays` (`supabase/plays.sql`) y el calendario en `events` (`supabase/events.sql`). Las jugadas se agrupan por equipo (`lib/teams.js`; columna `team`, migración en `supabase/equipos.sql`). El calendario es único para todo el club. Tiene RLS activado y **sin
 políticas**: la clave pública no puede leer ni escribir nada. Solo el servidor de la web,
 con `SUPABASE_SERVICE_ROLE_KEY`, accede a los datos, y únicamente después de comprobar la
 sesión. `lib/supabaseServer.js` usa `server-only`, así que si alguien lo importa desde un

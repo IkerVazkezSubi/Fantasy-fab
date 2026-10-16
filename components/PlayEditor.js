@@ -48,11 +48,12 @@ const ACTIONS = [
   { type: "screen", label: "Bloquea" },
 ];
 
-export default function PlayEditor({ initial, categories }) {
+export default function PlayEditor({ initial, categories, teams }) {
   const router = useRouter();
   const isNew = !initial.id;
 
   const [name, setName] = useState(initial.name ?? "");
+  const [team, setTeam] = useState(initial.team ?? teams[0].slug);
   const [category, setCategory] = useState(initial.category ?? categories[0]);
   const [description, setDescription] = useState(initial.description ?? "");
   const [steps, setSteps] = useState(() => {
@@ -241,7 +242,7 @@ export default function PlayEditor({ initial, categories }) {
     setBusy(true);
     setMessage(null);
     try {
-      const body = { name, category, description, steps };
+      const body = { name, team, category, description, steps };
       const data = isNew
         ? await request("/api/plays", "POST", body)
         : await request(`/api/plays/${initial.id}`, "PUT", body);
@@ -277,7 +278,7 @@ export default function PlayEditor({ initial, categories }) {
     try {
       await request(`/api/plays/${initial.id}`, "DELETE");
       setDirty(false);
-      router.push("/jugadas");
+      router.push(`/jugadas?eq=${team}`);
       router.refresh();
     } catch (e) {
       setMessage({ ok: false, text: e.message });
@@ -313,6 +314,27 @@ export default function PlayEditor({ initial, categories }) {
             }}
             placeholder="Por ejemplo: Bloqueo directo"
           />
+        </div>
+
+        <div>
+          <label htmlFor="ed-team" className="block font-semibold mb-1">
+            Equipo
+          </label>
+          <select
+            id="ed-team"
+            className={`${field} h-12`}
+            value={team}
+            onChange={(e) => {
+              setTeam(e.target.value);
+              touch();
+            }}
+          >
+            {teams.map((t) => (
+              <option key={t.slug} value={t.slug}>
+                {t.name}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div>
@@ -619,7 +641,7 @@ export default function PlayEditor({ initial, categories }) {
           )}
           <div className="flex gap-3">
             <Link
-              href={isNew ? "/jugadas" : `/jugadas/${initial.id}`}
+              href={isNew ? `/jugadas?eq=${team}` : `/jugadas/${initial.id}`}
               className={`${btn} shrink-0`}
               onClick={(e) => {
                 if (dirty && !window.confirm("Tienes cambios sin guardar. ¿Salir sin guardar?")) {

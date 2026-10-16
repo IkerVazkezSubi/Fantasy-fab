@@ -28,6 +28,7 @@
 create table if not exists plays (
   id          uuid primary key default gen_random_uuid(),
   name        text not null,
+  team        text not null default 'nacional-masculino', -- ver lib/teams.js
   category    text not null,
   description text,
   sort_order  int  not null default 0,
@@ -53,9 +54,10 @@ create trigger trg_plays_updated_at
   for each row execute function plays_touch_updated_at();
 
 -- Jugada de ejemplo (se puede borrar después)
-insert into plays (name, category, description, sort_order, steps)
+insert into plays (name, team, category, description, sort_order, steps)
 select
   'Bloqueo directo (ejemplo)',
+  'nacional-masculino',
   'Ataque',
   'Jugada de ejemplo para probar el visor.',
   0,

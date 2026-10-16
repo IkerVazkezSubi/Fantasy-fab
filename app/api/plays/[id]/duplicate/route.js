@@ -16,7 +16,7 @@ export async function POST(_request, { params }) {
     const db = supabaseAdmin();
     const { data: src, error: e1 } = await db
       .from("plays")
-      .select("name, category, description, steps")
+      .select("name, team, category, description, steps")
       .eq("id", params.id)
       .maybeSingle();
     if (e1) throw e1;
@@ -34,6 +34,7 @@ export async function POST(_request, { params }) {
       .from("plays")
       .insert({
         name: src.name.slice(0, 80 - suffix.length) + suffix,
+        team: src.team,
         category: src.category,
         description: src.description,
         steps: src.steps,
