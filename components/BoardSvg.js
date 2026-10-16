@@ -35,9 +35,28 @@ function Defender({ x, y }) {
   );
 }
 
-export default function BoardSvg({ shown, shapes = [], label = "Pizarra de la jugada" }) {
+// Modo editor (opcional): `itemProps(kind, id)` devuelve los manejadores para arrastrar
+// cada jugador ("p") o defensor ("d"); `selected` marca el elemento elegido.
+const HIT = { touchAction: "none", cursor: "grab", outline: "none" };
+
+export default function BoardSvg({
+  shown,
+  shapes = [],
+  label = "Pizarra de la jugada",
+  svgRef,
+  itemProps,
+  selected,
+}) {
+  const edit = (kind, id) => (itemProps ? { ...itemProps(kind, id), style: HIT } : {});
+  const isSel = (kind, id) => selected && selected.kind === kind && selected.id === id;
+  const ring = (x, y) => (
+    <circle cx={x} cy={y} r={PLAYER_R + 11} fill="none" stroke="#E2B070" strokeWidth="3" strokeDasharray="5 5" />
+  );
+  const hit = (x, y) => (itemProps ? <circle cx={x} cy={y} r="28" fill="transparent" /> : null);
+
   return (
     <svg
+      ref={svgRef}
       viewBox="0 0 500 470"
       role="img"
       aria-label={label}
@@ -50,14 +69,19 @@ export default function BoardSvg({ shown, shapes = [], label = "Pizarra de la ju
       ))}
 
       {Object.entries(shown.defenders).map(([id, p]) => (
-        <Defender key={id} x={p.x} y={p.y} />
+        <g key={id} {...edit("d", id)}>
+          {isSel("d", id) && ring(p.x, p.y)}
+          <Defender x={p.x} y={p.y} />
+          {hit(p.x, p.y)}
+        </g>
       ))}
 
       {PLAYER_IDS.map((id) => {
         const p = shown.players[id];
         const hasBall = shown.holder === id;
         return (
-          <g key={id}>
+          <g key={id} {...edit("p", id)}>
+            {isSel("p", id) && ring(p.x, p.y)}
             {hasBall && <circle cx={p.x} cy={p.y} r={PLAYER_R + 5} fill="none" stroke={BALL} strokeWidth="4" />}
             <circle cx={p.x} cy={p.y} r={PLAYER_R} fill={LINE} stroke={INK} strokeWidth="3" />
             <text
@@ -71,6 +95,7 @@ export default function BoardSvg({ shown, shapes = [], label = "Pizarra de la ju
             >
               {id}
             </text>
+            {hit(p.x, p.y)}
           </g>
         );
       })}

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { supabaseAdmin } from "../../lib/supabaseServer";
 import { CATEGORIES } from "../../lib/categories";
+import { isCoach } from "../../lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,7 @@ async function loadPlays() {
 export default async function JugadasPage({ searchParams }) {
   const selected = typeof searchParams?.cat === "string" ? searchParams.cat : null;
   const { plays, failed } = await loadPlays();
+  const coach = await isCoach();
 
   // Categorías de la configuración, más cualquier otra que exista en los datos
   // (así ninguna jugada queda escondida si se renombra una categoría).
@@ -42,6 +44,15 @@ export default async function JugadasPage({ searchParams }) {
       </Link>
 
       <h1 className="mt-2 font-display font-extrabold text-6xl leading-[0.85]">Jugadas</h1>
+
+      {coach && (
+        <Link
+          href="/jugadas/nueva"
+          className="mt-4 inline-flex items-center h-12 px-5 rounded-md bg-balon text-tinta font-display font-bold text-2xl"
+        >
+          + Nueva jugada
+        </Link>
+      )}
 
       <nav
         aria-label="Filtrar por categoría"

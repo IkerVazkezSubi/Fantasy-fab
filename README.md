@@ -44,17 +44,23 @@ app/
   page.js           menú principal
   jugadas/          listado con filtro por categoría
   jugadas/[id]/     visor de una jugada
+  jugadas/nueva/    editor: crear jugada (solo entrenador)
+  jugadas/[id]/editar/  editor: modificar jugada (solo entrenador)
+  api/plays/        crear, guardar, borrar y duplicar jugadas (solo entrenador)
   api/auth/         entrar (POST) y salir (DELETE)
   robots.js         robots.txt
 components/
   Court.js          suelo y líneas de la media pista
   BoardSvg.js       dibuja la pizarra en un instante (sin estado)
   PlayBoard.js      reproductor: Play, flechas, pasos y animación
+  PlayEditor.js     editor: arrastrar jugadores, pasos, pases, bloqueos, defensores
 lib/
   token.js          crear y comprobar la sesión
   session.js        leer la sesión en el servidor
   supabaseServer.js cliente de Supabase con clave de servidor
   playGeometry.js   normalizar pasos, interpolar y construir flechas/pases/bloqueos
+  editorModel.js    operaciones del editor sobre un paso (funciones puras)
+  playInput.js      validación de lo que llega al guardar
   categories.js     categorías de jugadas
   sections.js       secciones del menú (activar una nueva = ready: true)
 middleware.js       bloquea todo lo que no tenga sesión
