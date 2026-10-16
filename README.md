@@ -26,7 +26,7 @@ cierra las sesiones ya abiertas (para eso, cambia también `SESSION_SECRET`).
 
 ## Datos (Supabase)
 
-Las jugadas viven en la tabla `plays` (`supabase/plays.sql`). Tiene RLS activado y **sin
+Las jugadas viven en la tabla `plays` (`supabase/plays.sql`) y el calendario en `events` (`supabase/events.sql`). Tiene RLS activado y **sin
 políticas**: la clave pública no puede leer ni escribir nada. Solo el servidor de la web,
 con `SUPABASE_SERVICE_ROLE_KEY`, accede a los datos, y únicamente después de comprobar la
 sesión. `lib/supabaseServer.js` usa `server-only`, así que si alguien lo importa desde un
@@ -44,8 +44,10 @@ app/
   page.js           menú principal
   jugadas/          listado con filtro por categoría
   jugadas/[id]/     visor de una jugada
+  calendario/       lista de entrenos y partidos; nuevo/ y [id]/editar/ solo entrenador
   jugadas/nueva/    editor: crear jugada (solo entrenador)
   jugadas/[id]/editar/  editor: modificar jugada (solo entrenador)
+  api/events/       crear, guardar y borrar eventos (solo entrenador)
   api/plays/        crear, guardar, borrar y duplicar jugadas (solo entrenador)
   api/auth/         entrar (POST) y salir (DELETE)
   robots.js         robots.txt
@@ -53,6 +55,7 @@ components/
   Court.js          suelo y líneas de la media pista
   BoardSvg.js       dibuja la pizarra en un instante (sin estado)
   PlayBoard.js      reproductor: Play, flechas, pasos y animación
+  EventForm.js      formulario de evento del calendario
   PlayEditor.js     editor: arrastrar jugadores, pasos, pases, bloqueos, defensores
 lib/
   token.js          crear y comprobar la sesión
@@ -61,10 +64,13 @@ lib/
   playGeometry.js   normalizar pasos, interpolar y construir flechas/pases/bloqueos
   editorModel.js    operaciones del editor sobre un paso (funciones puras)
   playInput.js      validación de lo que llega al guardar
+  dates.js          fechas en hora de Madrid
+  events.js         tipos de evento y validación
   categories.js     categorías de jugadas
   sections.js       secciones del menú (activar una nueva = ready: true)
 middleware.js       bloquea todo lo que no tenga sesión
 supabase/plays.sql  tabla de jugadas y jugada de ejemplo
+supabase/events.sql tabla del calendario
 ```
 
 ## Desarrollo

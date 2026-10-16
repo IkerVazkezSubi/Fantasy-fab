@@ -31,13 +31,23 @@ export default async function HomePage() {
               <Link
                 key={s.key}
                 href={s.href}
-                className={`${span} parquet relative overflow-hidden rounded-md border-b-4 border-arce-dark text-tinta min-h-44 p-5 flex flex-col justify-end active:translate-y-px`}
+                className={`${span} parquet relative overflow-hidden rounded-md border-b-4 border-arce-dark text-tinta ${
+                  s.wide ? "min-h-44 p-5" : "min-h-32 p-4"
+                } flex flex-col justify-end active:translate-y-px`}
               >
-                <PlayArt className="pointer-events-none absolute -top-2 -right-4 w-60 text-tinta opacity-30" />
-                <span className="relative font-display font-extrabold text-6xl leading-[0.85]">
+                {s.wide && (
+                  <PlayArt className="pointer-events-none absolute -top-2 -right-4 w-60 text-tinta opacity-30" />
+                )}
+                <span
+                  className={`relative font-display font-extrabold leading-[0.85] ${
+                    s.wide ? "text-6xl" : "text-[clamp(1.5rem,8vw,2.25rem)]"
+                  }`}
+                >
                   {s.label}
                 </span>
-                <span className="relative mt-2 text-lg font-medium">{s.hint}</span>
+                <span className={`relative font-medium ${s.wide ? "mt-2 text-lg" : "mt-1 text-base"}`}>
+                  {s.hint}
+                </span>
               </Link>
             );
           }
