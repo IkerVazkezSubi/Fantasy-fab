@@ -46,6 +46,7 @@ export default function BoardSvg({
   svgRef,
   itemProps,
   selected,
+  handles = [],
 }) {
   const edit = (kind, id) => (itemProps ? { ...itemProps(kind, id), style: HIT } : {});
   const isSel = (kind, id) => selected && selected.kind === kind && selected.id === id;
@@ -99,6 +100,15 @@ export default function BoardSvg({
           </g>
         );
       })}
+
+      {itemProps &&
+        handles.map((h) => (
+          <g key={`c${h.id}`} {...edit("c", h.id)}>
+            <circle cx={h.x} cy={h.y} r="9" fill="#E8590C" stroke={INK} strokeWidth="2.5" />
+            <circle cx={h.x} cy={h.y} r="3" fill={LINE} />
+            {hit(h.x, h.y)}
+          </g>
+        ))}
 
       {shown.ball && (
         <g transform={`translate(${shown.ball.x} ${shown.ball.y})`}>

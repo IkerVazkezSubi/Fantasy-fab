@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import BoardSvg from "./BoardSvg";
 import {
   buildShapes,
+  curvesOfStep,
   easeInOut,
   lerpState,
   normalizeSteps,
@@ -48,6 +49,7 @@ export default function PlayBoard({ steps, title }) {
   const [shown, setShown] = useState(() => (total ? stateFromStep(norm[0]) : null));
   const shownRef = useRef(shown);
   const firstRun = useRef(true);
+  const lastIndex = useRef(0);
   const reduced = useReducedMotion();
 
   // Cada vez que cambia el paso, los jugadores se mueven suavemente desde donde
@@ -55,6 +57,9 @@ export default function PlayBoard({ steps, title }) {
   useEffect(() => {
     if (!total) return;
     const target = stateFromStep(norm[Math.min(index, total - 1)]);
+    // Al avanzar, los jugadores siguen las curvas del paso; al retroceder, vuelven en recta.
+    const curves = index > lastIndex.current ? curvesOfStep(norm[Math.min(index, total - 1)]) : {};
+    lastIndex.current = index;
 
     if (firstRun.current || reduced) {
       firstRun.current = false;
@@ -68,7 +73,7 @@ export default function PlayBoard({ steps, title }) {
     let raf = 0;
     const tick = (now) => {
       const t = Math.min(1, (now - start) / MOVE_MS);
-      const next = lerpState(from, target, easeInOut(t));
+      const next = lerpState(from, target, easeInOut(t), curves);
       shownRef.current = next;
       setShown(next);
       if (t < 1) raf = requestAnimationFrame(tick);

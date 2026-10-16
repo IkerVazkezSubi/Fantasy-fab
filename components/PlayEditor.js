@@ -9,12 +9,13 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import BoardSvg from "./BoardSvg";
 import PlayBoard from "./PlayBoard";
-import { PLAYER_IDS, buildShapes, normalizeSteps, stateFromStep } from "../lib/playGeometry";
+import { PLAYER_IDS, buildShapes, curveHandle, normalizeSteps, stateFromStep } from "../lib/playGeometry";
 import {
   MAX_DEFENDERS,
   MAX_STEPS,
   addDefender,
   blankStep,
+  clearCurve,
   clearPass,
   getPass,
   hasMoved,
@@ -23,8 +24,10 @@ import {
   movePlayer,
   nextStepFrom,
   playerAction,
+  playerCurve,
   removeDefender,
   setBall,
+  setCurve,
   setPass,
   setPlayerAction,
 } from "../lib/editorModel";
@@ -69,6 +72,14 @@ export default function PlayEditor({ initial, categories }) {
   const prev = index > 0 ? steps[index - 1] : null;
   const shown = useMemo(() => stateFromStep(norm[index]), [norm, index]);
   const shapes = useMemo(() => buildShapes(norm, index), [norm, index]);
+  // Puntos naranjas para curvar los movimientos de este paso (en unidades SVG).
+  const handles = useMemo(() => {
+    if (index === 0) return [];
+    return PLAYER_IDS.map((id) => {
+      const h = curveHandle(norm[index - 1], norm[index], id);
+      return h ? { id, x: (h.x * 500) / 100, y: (h.y * 470) / 100 } : null;
+    }).filter(Boolean);
+  }, [norm, index]);
   const allCategories = categories.includes(category) ? categories : [...categories, category];
 
   // Aviso del navegador si se intenta salir con cambios sin guardar.
@@ -101,17 +112,32 @@ export default function PlayEditor({ initial, categories }) {
     };
   };
 
+  // Posición (en %) de lo que se arrastra: jugador "p", defensor "d" o punto de curva "c".
+  const posOf = (s, kind, id) =>
+    kind === "p" ? s.players[id] : kind === "d" ? s.defenders.find((d) => d.id === id) : curveHandle(prev, s, id);
+  const placeAt = (s, kind, id, x, y) => {
+    if (kind === "p") return movePlayer(s, id, x, y);
+    if (kind === "d") return moveDefender(s, id, x, y);
+    // El punto está sobre la curva (a mitad); el punto de control real queda más lejos.
+    const a = prev.players[id];
+    const b = s.players[id];
+    const hx = Math.min(98, Math.max(2, x));
+    const hy = Math.min(98, Math.max(2, y));
+    return setCurve(s, id, 2 * hx - (a.x + b.x) / 2, 2 * hy - (a.y + b.y) / 2);
+  };
+
   const itemProps = (kind, id) => ({
     tabIndex: 0,
     role: "button",
-    "aria-label": kind === "p" ? `Jugador ${id}` : `Defensor ${id.replace("d", "")}`,
+    "aria-label":
+      kind === "p" ? `Jugador ${id}` : kind === "d" ? `Defensor ${id.replace("d", "")}` : `Curva del jugador ${id}`,
     onPointerDown: (e) => {
       e.currentTarget.setPointerCapture(e.pointerId);
-      const pos = kind === "p" ? cur.players[id] : cur.defenders.find((d) => d.id === id);
+      const pos = posOf(cur, kind, id);
       if (!pos) return;
       const pt = pointerPct(e);
       drag.current = { kind, id, pid: e.pointerId, dx: pos.x - pt.x, dy: pos.y - pt.y, moved: false };
-      setSelected({ kind, id });
+      setSelected(kind === "c" ? { kind: "p", id } : { kind, id });
       setConfirmDelete(false);
     },
     onPointerMove: (e) => {
@@ -119,9 +145,7 @@ export default function PlayEditor({ initial, categories }) {
       if (!d || d.pid !== e.pointerId) return;
       const pt = pointerPct(e);
       d.moved = true;
-      updateCur((s) =>
-        d.kind === "p" ? movePlayer(s, d.id, pt.x + d.dx, pt.y + d.dy) : moveDefender(s, d.id, pt.x + d.dx, pt.y + d.dy)
-      );
+      updateCur((s) => placeAt(s, d.kind, d.id, pt.x + d.dx, pt.y + d.dy));
     },
     onPointerUp: (e) => {
       const d = drag.current;
@@ -144,18 +168,15 @@ export default function PlayEditor({ initial, categories }) {
       const dy = e.key === "ArrowUp" ? -step : e.key === "ArrowDown" ? step : 0;
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
-        setSelected({ kind, id });
+        setSelected(kind === "c" ? { kind: "p", id } : { kind, id });
         return;
       }
       if (!dx && !dy) return;
       e.preventDefault();
-      setSelected({ kind, id });
+      setSelected(kind === "c" ? { kind: "p", id } : { kind, id });
       updateCur((s) => {
-        const pos = kind === "p" ? s.players[id] : s.defenders.find((x) => x.id === id);
-        if (!pos) return s;
-        return kind === "p"
-          ? movePlayer(s, id, pos.x + dx, pos.y + dy)
-          : moveDefender(s, id, pos.x + dx, pos.y + dy);
+        const pos = posOf(s, kind, id);
+        return pos ? placeAt(s, kind, id, pos.x + dx, pos.y + dy) : s;
       });
     },
   });
@@ -266,6 +287,8 @@ export default function PlayEditor({ initial, categories }) {
   const selPlayer = selected?.kind === "p" ? selected.id : null;
   const selDefender = selected?.kind === "d" ? selected.id : null;
   const pass = getPass(cur);
+  const selCurve = selPlayer ? playerCurve(cur, selPlayer) : null;
+  const canCurve = selPlayer && handles.some((h) => h.id === selPlayer);
   const canPass = selPlayer && holderBefore(cur) === selPlayer;
 
   return (
@@ -340,6 +363,7 @@ export default function PlayEditor({ initial, categories }) {
           svgRef={svgRef}
           itemProps={itemProps}
           selected={selected}
+          handles={handles}
           label="Pizarra del editor"
         />
       </div>
@@ -438,7 +462,17 @@ export default function PlayEditor({ initial, categories }) {
                 </div>
                 <p className="mt-1 text-sm text-linea/70">
                   La línea se dibuja desde donde estaba en el paso anterior.
+                  {canCurve && " Arrastra el punto naranja de la línea para hacerla curva."}
                 </p>
+                {selCurve && (
+                  <button
+                    type="button"
+                    className={`${btn} mt-2`}
+                    onClick={() => updateCur((s) => clearCurve(s, selPlayer))}
+                  >
+                    Quitar la curva
+                  </button>
+                )}
               </div>
             ) : (
               <p className="text-linea/80">
