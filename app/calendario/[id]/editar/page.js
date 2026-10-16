@@ -19,7 +19,7 @@ export default async function EditarEventoPage({ params }) {
   try {
     const { data, error } = await supabaseAdmin()
       .from("events")
-      .select("id, title, kind, starts_at, location, notes, home_team, away_team, club_team, competition")
+      .select("id, title, kind, starts_at, location, notes, home_team, away_team, club_team, competition, home_score, away_score")
       .eq("id", params.id)
       .maybeSingle();
     if (error) throw error;
@@ -55,6 +55,8 @@ export default async function EditarEventoPage({ params }) {
             away_team: ev.away_team ?? splitVersus(ev.title).away,
             club_team: ev.club_team ?? undefined,
             competition: ev.competition ?? "",
+            home_score: ev.home_score ?? "",
+            away_score: ev.away_score ?? "",
           }}
         />
       )}

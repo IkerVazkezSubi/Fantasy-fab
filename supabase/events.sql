@@ -18,6 +18,8 @@ create table if not exists events (
   away_team   text,   -- solo partidos: equipo visitante
   club_team   text,   -- solo partidos: equipo del club (ver lib/teams.js)
   competition text,   -- solo partidos: por ejemplo "Liga Provincial Masculina"
+  home_score  int,    -- solo partidos: puntos del local (vacío hasta que acaba)
+  away_score  int,    -- solo partidos: puntos del visitante
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );

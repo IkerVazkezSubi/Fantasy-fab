@@ -21,6 +21,8 @@ export default function EventForm({ initial }) {
   const [clubTeam, setClubTeam] = useState(initial.club_team ?? "");
   const [home, setHome] = useState(initial.home_team ?? "");
   const [away, setAway] = useState(initial.away_team ?? "");
+  const [homeScore, setHomeScore] = useState(String(initial.home_score ?? ""));
+  const [awayScore, setAwayScore] = useState(String(initial.away_score ?? ""));
   const [competition, setCompetition] = useState(initial.competition ?? "");
   const [startsLocal, setStartsLocal] = useState(initial.starts_local ?? "");
   const [location, setLocation] = useState(initial.location ?? "");
@@ -77,6 +79,9 @@ export default function EventForm({ initial }) {
     const isMatch = kind === "Partido";
     if (isMatch && !clubTeam) return setError("Elige qué equipo del club juega.");
     if (isMatch && (!home.trim() || !away.trim())) return setError("Escribe los dos equipos que juegan.");
+    if (isMatch && !homeScore.trim() !== !awayScore.trim()) {
+      return setError("Escribe los dos marcadores, o deja los dos vacíos.");
+    }
     if (!isMatch && !title.trim()) return setError("Escribe el título.");
     if (!startsLocal) return setError("Elige la fecha y la hora.");
     setBusy(true);
@@ -92,6 +97,8 @@ export default function EventForm({ initial }) {
         away_team: away,
         club_team: clubTeam,
         competition,
+        home_score: homeScore,
+        away_score: awayScore,
       };
       if (isNew) await request("/api/events", "POST", body);
       else await request(`/api/events/${initial.id}`, "PUT", body);
@@ -229,6 +236,48 @@ export default function EventForm({ initial }) {
         />
         <p className="mt-1 text-sm text-linea/70">Hora de Madrid.</p>
       </div>
+
+      {kind === "Partido" && (
+        <fieldset>
+          <legend className="font-semibold mb-1">
+            Resultado <span className="font-normal text-linea/70">(cuando acabe el partido)</span>
+          </legend>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="ev-hs" className="block text-sm text-linea/80 mb-1 truncate">
+                {home.trim() || "Local"}
+              </label>
+              <input
+                id="ev-hs"
+                type="number"
+                inputMode="numeric"
+                min="0"
+                max="300"
+                className={`${field} h-12`}
+                value={homeScore}
+                onChange={change(setHomeScore)}
+                aria-label="Puntos del local"
+              />
+            </div>
+            <div>
+              <label htmlFor="ev-as" className="block text-sm text-linea/80 mb-1 truncate">
+                {away.trim() || "Visitante"}
+              </label>
+              <input
+                id="ev-as"
+                type="number"
+                inputMode="numeric"
+                min="0"
+                max="300"
+                className={`${field} h-12`}
+                value={awayScore}
+                onChange={change(setAwayScore)}
+                aria-label="Puntos del visitante"
+              />
+            </div>
+          </div>
+        </fieldset>
+      )}
 
       <div>
         <label htmlFor="ev-loc" className="block font-semibold mb-1">

@@ -14,7 +14,7 @@ async function loadEvents() {
   try {
     const { data, error } = await supabaseAdmin()
       .from("events")
-      .select("id, title, kind, starts_at, location, notes, home_team, away_team, club_team, competition")
+      .select("id, title, kind, starts_at, location, notes, home_team, away_team, club_team, competition, home_score, away_score")
       .order("starts_at", { ascending: true });
     if (error) throw error;
     return { events: data ?? [], failed: false };
@@ -38,6 +38,7 @@ function groupByDay(events) {
 function EventRow({ ev, coach }) {
   const isMatch = ev.kind === "Partido";
   const versus = isMatch && ev.home_team && ev.away_team;
+  const hasScore = versus && ev.home_score != null && ev.away_score != null;
   const team = teamBySlug(ev.club_team);
   // La liga de siempre ya se entiende por el equipo del club; solo se muestra la competición
   // si es otra (una copa, un torneo…).
@@ -50,7 +51,15 @@ function EventRow({ ev, coach }) {
       <div className="min-w-0 flex-1">
         {versus ? (
           <p className="font-display font-bold text-3xl leading-tight break-words">
-            {ev.home_team} <span className="text-arce text-2xl">vs</span> {ev.away_team}
+            {ev.home_team}{" "}
+            {hasScore ? (
+              <span className="text-arce">
+                {ev.home_score} – {ev.away_score}
+              </span>
+            ) : (
+              <span className="text-arce text-2xl">vs</span>
+            )}{" "}
+            {ev.away_team}
           </p>
         ) : (
           <p className="font-display font-bold text-3xl leading-tight break-words">{ev.title}</p>
@@ -143,23 +152,42 @@ export default async function CalendarioPage({ searchParams }) {
                 <>
                   <h2 className="font-display font-bold text-3xl leading-none">Ya pasados</h2>
                   <ul className="mt-2">
-                    {past.map((ev) => (
-                      <li key={ev.id} className="py-3 border-b border-linea/25 text-linea/80">
-                        <span className="font-semibold">
-                          {formatDay(ev.starts_at)}, {formatTime(ev.starts_at)}
-                        </span>
-                        {" · "}
-                        {ev.title}
-                        {coach && (
-                          <Link
-                            href={`/calendario/${ev.id}/editar`}
-                            className="ml-3 underline underline-offset-4 font-semibold"
-                          >
-                            Editar
-                          </Link>
-                        )}
-                      </li>
-                    ))}
+                    {past.map((ev) => {
+                      const versus = ev.kind === "Partido" && ev.home_team && ev.away_team;
+                      const hasScore = versus && ev.home_score != null && ev.away_score != null;
+                      return (
+                        <li key={ev.id} className="py-3 border-b border-linea/25">
+                          <p className="text-sm text-linea/70">
+                            {formatDay(ev.starts_at)}, {formatTime(ev.starts_at)}
+                          </p>
+                          <p className="font-display font-bold text-2xl leading-tight break-words">
+                            {versus ? (
+                              <>
+                                {ev.home_team}{" "}
+                                {hasScore ? (
+                                  <span className="text-arce">
+                                    {ev.home_score} – {ev.away_score}
+                                  </span>
+                                ) : (
+                                  <span className="text-arce text-xl">vs</span>
+                                )}{" "}
+                                {ev.away_team}
+                              </>
+                            ) : (
+                              ev.title
+                            )}
+                          </p>
+                          {coach && (
+                            <Link
+                              href={`/calendario/${ev.id}/editar`}
+                              className="inline-flex items-center h-11 underline underline-offset-4 font-semibold"
+                            >
+                              {versus && !hasScore ? "Añadir resultado" : "Editar"}
+                            </Link>
+                          )}
+                        </li>
+                      );
+                    })}
                   </ul>
                   <Link
                     href="/calendario"
