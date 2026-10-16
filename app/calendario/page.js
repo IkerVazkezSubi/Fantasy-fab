@@ -103,8 +103,30 @@ function Groups({ groups, coach }) {
   ));
 }
 
+function Tabs({ active }) {
+  const base = "flex-1 inline-flex items-center justify-center h-12 font-display font-bold text-2xl border-b-4";
+  return (
+    <nav aria-label="Calendario" className="mt-6 flex">
+      <Link
+        href="/calendario"
+        aria-current={active === "proximos" ? "page" : undefined}
+        className={`${base} ${active === "proximos" ? "border-arce text-linea" : "border-linea/20 text-linea/60"}`}
+      >
+        Próximos
+      </Link>
+      <Link
+        href="/calendario?ver=resultados"
+        aria-current={active === "resultados" ? "page" : undefined}
+        className={`${base} ${active === "resultados" ? "border-arce text-linea" : "border-linea/20 text-linea/60"}`}
+      >
+        Resultados
+      </Link>
+    </nav>
+  );
+}
+
 export default async function CalendarioPage({ searchParams }) {
-  const showPast = searchParams?.pasados === "1";
+  const tab = searchParams?.ver === "resultados" || searchParams?.pasados === "1" ? "resultados" : "proximos";
   const [{ events, failed }, coach] = await Promise.all([loadEvents(), isCoach()]);
 
   const limit = Date.now() - GRACE_MS;
@@ -131,28 +153,26 @@ export default async function CalendarioPage({ searchParams }) {
         </Link>
       )}
 
+      <Tabs active={tab} />
+
       {failed ? (
         <p className="mt-8 text-lg">
           No se ha podido cargar el calendario. Prueba otra vez en un momento; si sigue igual,
           avisa al entrenador.
         </p>
+      ) : tab === "proximos" ? (
+        upcoming.length === 0 ? (
+          <p className="mt-8 text-lg text-linea/80">
+            No hay nada próximo. El entrenador irá añadiendo entrenos y partidos.
+          </p>
+        ) : (
+          <Groups groups={groupByDay(upcoming)} coach={coach} />
+        )
+      ) : past.length === 0 ? (
+        <p className="mt-8 text-lg text-linea/80">Todavía no hay partidos terminados.</p>
       ) : (
-        <>
-          {upcoming.length === 0 ? (
-            <p className="mt-8 text-lg text-linea/80">
-              No hay nada próximo. El entrenador irá añadiendo entrenos y partidos.
-            </p>
-          ) : (
-            <Groups groups={groupByDay(upcoming)} coach={coach} />
-          )}
-
-          {past.length > 0 && (
-            <div className="mt-10">
-              {showPast ? (
-                <>
-                  <h2 className="font-display font-bold text-3xl leading-none">Ya pasados</h2>
-                  <ul className="mt-2">
-                    {past.map((ev) => {
+        <ul className="mt-4">
+          {past.map((ev) => {
                       const versus = ev.kind === "Partido" && ev.home_team && ev.away_team;
                       const hasScore = versus && ev.home_score != null && ev.away_score != null;
                       return (
@@ -188,25 +208,7 @@ export default async function CalendarioPage({ searchParams }) {
                         </li>
                       );
                     })}
-                  </ul>
-                  <Link
-                    href="/calendario"
-                    className="mt-3 inline-flex items-center h-11 font-semibold underline underline-offset-4"
-                  >
-                    Ocultar los pasados
-                  </Link>
-                </>
-              ) : (
-                <Link
-                  href="/calendario?pasados=1"
-                  className="inline-flex items-center h-11 font-semibold underline underline-offset-4"
-                >
-                  Ver los pasados
-                </Link>
-              )}
-            </div>
-          )}
-        </>
+        </ul>
       )}
     </main>
   );
