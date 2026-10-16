@@ -2,6 +2,7 @@ import Link from "next/link";
 import { supabaseAdmin } from "../../lib/supabaseServer";
 import { isCoach } from "../../lib/session";
 import { dayKey, formatDay, formatTime } from "../../lib/dates";
+import { teamBySlug } from "../../lib/teams";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,7 @@ async function loadEvents() {
   try {
     const { data, error } = await supabaseAdmin()
       .from("events")
-      .select("id, title, kind, starts_at, location, notes")
+      .select("id, title, kind, starts_at, location, notes, home_team, away_team, club_team, competition")
       .order("starts_at", { ascending: true });
     if (error) throw error;
     return { events: data ?? [], failed: false };
@@ -36,14 +37,25 @@ function groupByDay(events) {
 
 function EventRow({ ev, coach }) {
   const isMatch = ev.kind === "Partido";
+  const versus = isMatch && ev.home_team && ev.away_team;
+  const team = teamBySlug(ev.club_team);
   return (
     <li className="py-4 border-b border-linea/25 flex gap-4">
       <p className="font-display font-bold text-4xl leading-none w-[4.5rem] shrink-0 tabular-nums">
         {formatTime(ev.starts_at)}
       </p>
       <div className="min-w-0 flex-1">
-        <p className="font-display font-bold text-3xl leading-tight break-words">{ev.title}</p>
-        <p className="mt-1">
+        {versus && ev.competition && (
+          <p className="text-sm font-semibold text-arce leading-tight mb-0.5">{ev.competition}</p>
+        )}
+        {versus ? (
+          <p className="font-display font-bold text-3xl leading-tight break-words">
+            {ev.home_team} <span className="text-arce text-2xl">vs</span> {ev.away_team}
+          </p>
+        ) : (
+          <p className="font-display font-bold text-3xl leading-tight break-words">{ev.title}</p>
+        )}
+        <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
           <span
             className={`inline-block rounded px-2 py-0.5 text-sm font-semibold ${
               isMatch ? "bg-balon text-tinta" : "border border-linea/60"
@@ -51,7 +63,12 @@ function EventRow({ ev, coach }) {
           >
             {ev.kind}
           </span>
-          {ev.location && <span className="ml-2 text-linea/90">{ev.location}</span>}
+          {isMatch && team && (
+            <span className="inline-block rounded px-2 py-0.5 text-sm font-semibold border border-arce text-arce">
+              {team.name}
+            </span>
+          )}
+          {ev.location && <span className="text-linea/90">{ev.location}</span>}
         </p>
         {ev.notes && <p className="mt-1 text-linea/80 whitespace-pre-line">{ev.notes}</p>}
         {coach && (

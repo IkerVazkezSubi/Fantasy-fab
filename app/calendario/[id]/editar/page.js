@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { isCoach } from "../../../../lib/session";
 import { supabaseAdmin } from "../../../../lib/supabaseServer";
 import { isoToMadridLocal } from "../../../../lib/dates";
+import { splitVersus } from "../../../../lib/events";
 import EventForm from "../../../../components/EventForm";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +19,7 @@ export default async function EditarEventoPage({ params }) {
   try {
     const { data, error } = await supabaseAdmin()
       .from("events")
-      .select("id, title, kind, starts_at, location, notes")
+      .select("id, title, kind, starts_at, location, notes, home_team, away_team, club_team, competition")
       .eq("id", params.id)
       .maybeSingle();
     if (error) throw error;
@@ -49,6 +50,11 @@ export default async function EditarEventoPage({ params }) {
             starts_local: isoToMadridLocal(ev.starts_at),
             location: ev.location ?? "",
             notes: ev.notes ?? "",
+            // Partidos antiguos (solo con título): se intenta separar "Local vs Visitante".
+            home_team: ev.home_team ?? splitVersus(ev.title).home,
+            away_team: ev.away_team ?? splitVersus(ev.title).away,
+            club_team: ev.club_team ?? undefined,
+            competition: ev.competition ?? "",
           }}
         />
       )}

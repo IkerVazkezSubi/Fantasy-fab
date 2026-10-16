@@ -14,6 +14,10 @@ create table if not exists events (
   starts_at   timestamptz not null,
   location    text,
   notes       text,
+  home_team   text,   -- solo partidos: equipo local
+  away_team   text,   -- solo partidos: equipo visitante
+  club_team   text,   -- solo partidos: equipo del club (ver lib/teams.js)
+  competition text,   -- solo partidos: por ejemplo "Liga Provincial Masculina"
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );

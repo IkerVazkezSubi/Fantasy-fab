@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { EVENT_KINDS } from "../lib/events";
+import { TEAMS, teamBySlug } from "../lib/teams";
 
 const field =
   "w-full rounded-md bg-linea text-tinta px-3 text-base border-2 border-transparent focus:border-balon outline-none";
@@ -17,6 +18,10 @@ export default function EventForm({ initial }) {
 
   const [title, setTitle] = useState(initial.title ?? "");
   const [kind, setKind] = useState(initial.kind ?? EVENT_KINDS[0]);
+  const [clubTeam, setClubTeam] = useState(initial.club_team ?? "");
+  const [home, setHome] = useState(initial.home_team ?? "");
+  const [away, setAway] = useState(initial.away_team ?? "");
+  const [competition, setCompetition] = useState(initial.competition ?? "");
   const [startsLocal, setStartsLocal] = useState(initial.starts_local ?? "");
   const [location, setLocation] = useState(initial.location ?? "");
   const [notes, setNotes] = useState(initial.notes ?? "");
@@ -34,6 +39,15 @@ export default function EventForm({ initial }) {
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty]);
+
+  // Al elegir el equipo del club se propone su liga (si aún no se ha escrito otra cosa).
+  const pickClubTeam = (slug) => {
+    setClubTeam(slug);
+    setDirty(true);
+    setError(null);
+    const isDefault = !competition.trim() || TEAMS.some((t) => t.league === competition.trim());
+    if (isDefault) setCompetition(teamBySlug(slug)?.league ?? "");
+  };
 
   const change = (setter) => (e) => {
     setter(e.target.value);
@@ -60,12 +74,25 @@ export default function EventForm({ initial }) {
 
   const save = async (e) => {
     e.preventDefault();
-    if (!title.trim()) return setError("Escribe el título.");
+    const isMatch = kind === "Partido";
+    if (isMatch && !clubTeam) return setError("Elige qué equipo del club juega.");
+    if (isMatch && (!home.trim() || !away.trim())) return setError("Escribe los dos equipos que juegan.");
+    if (!isMatch && !title.trim()) return setError("Escribe el título.");
     if (!startsLocal) return setError("Elige la fecha y la hora.");
     setBusy(true);
     setError(null);
     try {
-      const body = { title, kind, starts_local: startsLocal, location, notes };
+      const body = {
+        title,
+        kind,
+        starts_local: startsLocal,
+        location,
+        notes,
+        home_team: home,
+        away_team: away,
+        club_team: clubTeam,
+        competition,
+      };
       if (isNew) await request("/api/events", "POST", body);
       else await request(`/api/events/${initial.id}`, "PUT", body);
       done();
@@ -91,20 +118,6 @@ export default function EventForm({ initial }) {
 
   return (
     <form onSubmit={save} className="space-y-4 pb-28">
-      <div>
-        <label htmlFor="ev-title" className="block font-semibold mb-1">
-          Título
-        </label>
-        <input
-          id="ev-title"
-          className={`${field} h-12`}
-          value={title}
-          maxLength={80}
-          onChange={change(setTitle)}
-          placeholder="Por ejemplo: Entreno de martes"
-        />
-      </div>
-
       <fieldset>
         <legend className="font-semibold mb-1">Tipo</legend>
         <div className="flex gap-2">
@@ -124,6 +137,83 @@ export default function EventForm({ initial }) {
           ))}
         </div>
       </fieldset>
+
+      {kind === "Partido" ? (
+        <>
+          <fieldset>
+            <legend className="font-semibold mb-1">Equipo del club</legend>
+            <div className="grid gap-2">
+              {TEAMS.map((t) => (
+                <button
+                  key={t.slug}
+                  type="button"
+                  aria-pressed={clubTeam === t.slug}
+                  onClick={() => pickClubTeam(t.slug)}
+                  className={`${btn} ${clubTeam === t.slug ? "bg-linea text-pintura border-linea" : ""}`}
+                >
+                  {t.name}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+
+          <div>
+            <label htmlFor="ev-home" className="block font-semibold mb-1">
+              Equipo local
+            </label>
+            <input
+              id="ev-home"
+              className={`${field} h-12`}
+              value={home}
+              maxLength={60}
+              onChange={change(setHome)}
+              placeholder="Por ejemplo: CB Palos"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="ev-away" className="block font-semibold mb-1">
+              Equipo visitante
+            </label>
+            <input
+              id="ev-away"
+              className={`${field} h-12`}
+              value={away}
+              maxLength={60}
+              onChange={change(setAway)}
+              placeholder="Por ejemplo: Valverde"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="ev-comp" className="block font-semibold mb-1">
+              Competición <span className="font-normal text-linea/70">(opcional)</span>
+            </label>
+            <input
+              id="ev-comp"
+              className={`${field} h-12`}
+              value={competition}
+              maxLength={60}
+              onChange={change(setCompetition)}
+              placeholder="Por ejemplo: Liga Provincial Masculina"
+            />
+          </div>
+        </>
+      ) : (
+        <div>
+          <label htmlFor="ev-title" className="block font-semibold mb-1">
+            Título
+          </label>
+          <input
+            id="ev-title"
+            className={`${field} h-12`}
+            value={title}
+            maxLength={80}
+            onChange={change(setTitle)}
+            placeholder="Por ejemplo: Entreno de martes"
+          />
+        </div>
+      )}
 
       <div>
         <label htmlFor="ev-when" className="block font-semibold mb-1">
