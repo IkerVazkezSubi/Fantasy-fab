@@ -2,8 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  background: #14213d;
-  color: #f1e9da;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-pintura text-linea font-body antialiased;
+  }
+  :focus-visible {
+    outline: 3px solid #fbf8f1;
+    outline-offset: 3px;
+  }
+}
+
+@layer components {
+  /* Parqué de arce: tablas verticales con una veta suave. */
+  .parquet {
+    background-color: #e2b070;
+    background-image:
+      repeating-linear-gradient(
+        90deg,
+        transparent 0 46px,
+        rgba(94, 52, 12, 0.28) 46px 48px
+      ),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(0, 0, 0, 0.05));
+  }
 }
