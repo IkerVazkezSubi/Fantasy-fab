@@ -10,7 +10,7 @@ import {
   stateFromStep,
 } from "../lib/playGeometry";
 
-const MOVE_MS = 550; // lo que tarda cada movimiento
+const MOVE_MS = 900; // lo que tarda cada movimiento
 const HOLD_BASE_MS = 600; // pausa mínima antes del siguiente paso al reproducir
 const HOLD_PER_CHAR_MS = 10; // más pausa si el texto del paso es largo
 const HOLD_MAX_MS = 1800;
