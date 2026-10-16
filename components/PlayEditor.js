@@ -17,7 +17,9 @@ import {
   blankStep,
   clearCurve,
   clearPass,
+  clearShot,
   getPass,
+  getShot,
   hasMoved,
   holderBefore,
   moveDefender,
@@ -29,6 +31,7 @@ import {
   setBall,
   setCurve,
   setPass,
+  setShot,
   setPlayerAction,
 } from "../lib/editorModel";
 
@@ -287,6 +290,7 @@ export default function PlayEditor({ initial, categories }) {
   const selPlayer = selected?.kind === "p" ? selected.id : null;
   const selDefender = selected?.kind === "d" ? selected.id : null;
   const pass = getPass(cur);
+  const shot = getShot(cur);
   const selCurve = selPlayer ? playerCurve(cur, selPlayer) : null;
   const canCurve = selPlayer && handles.some((h) => h.id === selPlayer);
   const canPass = selPlayer && holderBefore(cur) === selPlayer;
@@ -492,6 +496,20 @@ export default function PlayEditor({ initial, categories }) {
                 {cur.ball === selPlayer ? "Tiene el balón" : "Dar el balón a este jugador"}
               </button>
             </div>
+
+            {canPass && (
+              <div>
+                <p className="font-semibold mb-1">Tiro</p>
+                <button
+                  type="button"
+                  aria-pressed={!!shot}
+                  onClick={() => updateCur((s) => (shot ? clearShot(s) : setShot(s, selPlayer)))}
+                  className={`${btn} w-full ${shot ? chipOn : ""}`}
+                >
+                  {shot ? "Tira a canasta (tocar para quitar)" : "Tira a canasta"}
+                </button>
+              </div>
+            )}
 
             {canPass && (
               <div>
