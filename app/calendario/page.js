@@ -39,15 +39,15 @@ function EventRow({ ev, coach }) {
   const isMatch = ev.kind === "Partido";
   const versus = isMatch && ev.home_team && ev.away_team;
   const team = teamBySlug(ev.club_team);
+  // La liga de siempre ya se entiende por el equipo del club; solo se muestra la competición
+  // si es otra (una copa, un torneo…).
+  const extraCompetition = isMatch && ev.competition && ev.competition !== team?.league;
   return (
     <li className="py-4 border-b border-linea/25 flex gap-4">
       <p className="font-display font-bold text-4xl leading-none w-[4.5rem] shrink-0 tabular-nums">
         {formatTime(ev.starts_at)}
       </p>
       <div className="min-w-0 flex-1">
-        {versus && ev.competition && (
-          <p className="text-sm font-semibold text-arce leading-tight mb-0.5">{ev.competition}</p>
-        )}
         {versus ? (
           <p className="font-display font-bold text-3xl leading-tight break-words">
             {ev.home_team} <span className="text-arce text-2xl">vs</span> {ev.away_team}
@@ -56,11 +56,7 @@ function EventRow({ ev, coach }) {
           <p className="font-display font-bold text-3xl leading-tight break-words">{ev.title}</p>
         )}
         <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span
-            className={`inline-block rounded px-2 py-0.5 text-sm font-semibold ${
-              isMatch ? "bg-balon text-tinta" : "border border-linea/60"
-            }`}
-          >
+          <span className="inline-block rounded px-2 py-0.5 text-sm font-semibold border border-linea/40 text-linea/80">
             {ev.kind}
           </span>
           {isMatch && team && (
@@ -68,6 +64,7 @@ function EventRow({ ev, coach }) {
               {team.name}
             </span>
           )}
+          {extraCompetition && <span className="text-linea/90">{ev.competition}</span>}
           {ev.location && <span className="text-linea/90">{ev.location}</span>}
         </p>
         {ev.notes && <p className="mt-1 text-linea/80 whitespace-pre-line">{ev.notes}</p>}
